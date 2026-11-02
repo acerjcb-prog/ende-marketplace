@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { @apply bg-white text-ink antialiased; }
+  :focus-visible { outline: 3px solid #A8743F; outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+}
+
+/* Motif tenun ikat: pola belah ketupat bergaya, murni CSS/SVG buatan sendiri (bukan logo resmi). */
+.motif-tenun {
+  background-color: #13294B;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='24' viewBox='0 0 48 24'%3E%3Cpath d='M12 2 22 12 12 22 2 12Z' fill='none' stroke='%23A8743F' stroke-width='2'/%3E%3Cpath d='M12 8 16 12 12 16 8 12Z' fill='%237A1F2B'/%3E%3Cpath d='M36 2 46 12 36 22 26 12Z' fill='none' stroke='%23EFE3D3' stroke-width='1.5'/%3E%3Ccircle cx='36' cy='12' r='2' fill='%23A8743F'/%3E%3C/svg%3E");
+  background-size: 48px 24px;
+}
+.motif-tenun-tipis {
+  height: 10px;
+  background-color: #7A1F2B;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='10' viewBox='0 0 20 10'%3E%3Cpath d='M10 0 15 5 10 10 5 5Z' fill='%23A8743F'/%3E%3C/svg%3E");
+  background-size: 20px 10px;
+}
