@@ -19,26 +19,67 @@ export default function ResetPasswordPage() {
     const supabase = createClient();
     let active = true;
 
-    async function checkSession() {
-      const { data, error } = await supabase.auth.getSession();
-
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (!active) return;
 
-      if (!error && data.session) {
+      if (session && (
+        event === "PASSWORD_RECOVERY" ||
+        event === "SIGNED_IN" ||
+        event === "INITIAL_SESSION"
+      )) {
         setSessionReady(true);
-      } else {
-        setMessage(
-          "Tautan pemulihan tidak valid atau sudah kedaluwarsa. Silakan minta email pemulihan yang baru."
-        );
+        setMessage("");
+        setChecking(false);
       }
+    });
 
-      setChecking(false);
+    async function checkRecovery() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get("code");
+
+        if (code) {
+          const { data, error } =
+            await supabase.auth.exchangeCodeForSession(code);
+
+          if (!active) return;
+
+          if (error) {
+            setMessage(
+              "Tautan pemulihan tidak valid atau sudah kedaluwarsa. Silakan minta email baru."
+            );
+          } else if (data.session) {
+            setSessionReady(true);
+          }
+        } else {
+          const { data, error } = await supabase.auth.getSession();
+
+          if (!active) return;
+
+          if (!error && data.session) {
+            setSessionReady(true);
+          } else {
+            setMessage(
+              "Tautan pemulihan tidak valid atau sudah kedaluwarsa. Silakan minta email baru."
+            );
+          }
+        }
+      } catch {
+        if (active) {
+          setMessage("Gagal memeriksa tautan pemulihan.");
+        }
+      } finally {
+        if (active) setChecking(false);
+      }
     }
 
-    void checkSession();
+    void checkRecovery();
 
     return () => {
       active = false;
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -78,7 +119,7 @@ export default function ResetPasswordPage() {
 
       setTimeout(() => {
         router.push("/admin");
-      }, 1500);
+      }, 2000);
     } catch {
       setMessage("Terjadi kesalahan. Silakan coba lagi.");
     } finally {
