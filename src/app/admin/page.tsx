@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase";
 import {
   LayoutDashboard,
   Palette,
@@ -87,6 +88,13 @@ export default function AdminPage() {
     useState<SiteSettings>(defaultSettings);
   const [ready, setReady] = useState(false);
   const [message, setMessage] = useState("");
+  
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [saving, setSaving] = useState(false);
+
 
   useEffect(() => {
     try {
@@ -112,6 +120,152 @@ export default function AdminPage() {
 
     setReady(true);
   }, []);
+  
+  useEffect(() => {
+    const supabase = createClient();
+    let active = true;
+
+    async function checkSession() {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (!active) return;
+
+      const session = data.session;
+
+      if (!error && session?.user.id === "6a137349-382b-4585-a2f0-651b04938c9c") {
+        setUserId(session.user.id);
+      } else {
+        setUserId(null);
+
+        if (session) {
+          await supabase.auth.signOut();
+        }
+      }
+
+      if (active) setAuthReady(true);
+    }
+
+    void checkSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user.id === "6a137349-382b-4585-a2f0-651b04938c9c") {
+        setUserId(session.user.id);
+      } else {
+        setUserId(null);
+      }
+
+      setAuthReady(true);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    let active = true;
+
+    async function loadSettings() {
+      const supabase = createClient();
+
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("settings")
+        .eq("id", "global")
+        .maybeSingle();
+
+      if (!active) return;
+
+      if (error) {
+        setMessage("Gagal memuat pengaturan dari Supabase.");
+        return;
+      }
+
+      if (data?.settings) {
+        const parsed =
+          data.settings as unknown as Partial<SiteSettings>;
+
+        setSettings({
+          ...defaultSettings,
+          ...parsed,
+          menus: Array.isArray(parsed.menus)
+            ? parsed.menus
+            : defaultSettings.menus,
+          sections: Array.isArray(parsed.sections)
+            ? parsed.sections
+            : defaultSettings.sections,
+        });
+      }
+    }
+
+    void loadSettings();
+
+    return () => {
+      active = false;
+    };
+  }, [userId]);
+
+
+  async function handleLogin() {
+    setMessage("");
+
+    const supabase = createClient();
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setMessage("Login gagal. Periksa email dan kata sandi.");
+      return;
+    }
+
+    if (data.user.id !== "6a137349-382b-4585-a2f0-651b04938c9c") {
+      await supabase.auth.signOut();
+      setUserId(null);
+      setMessage("Akun ini bukan akun Super Admin.");
+      return;
+    }
+
+    setUserId(data.user.id);
+    setPassword("");
+    setMessage("Login Super Admin berhasil.");
+  }
+
+  async function handlePasswordRecovery() {
+    if (!email) {
+      setMessage("Masukkan email admin terlebih dahulu.");
+      return;
+    }
+
+    setMessage("");
+
+    const supabase = createClient();
+
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      email,
+      {
+        redirectTo: `${window.location.origin}/admin/reset-password`,
+      }
+    );
+
+    if (error) {
+      setMessage(
+        "Gagal mengirim email pemulihan. " + error.message
+      );
+      return;
+    }
+
+    setMessage(
+      "Permintaan pemulihan dikirim. Periksa email admin."
+    );
+  }
 
   function updateField<K extends keyof SiteSettings>(
     key: K,
@@ -121,17 +275,47 @@ export default function AdminPage() {
     setMessage("");
   }
 
-  function saveSettings() {
+ 
+  async function saveSettings() {
+    if (!userId) {
+      setMessage("Silakan login sebagai Super Admin.");
+      return;
+    }
+
+    setSaving(true);
+    setMessage("");
+
     try {
+      const supabase = createClient();
+
+      const { error } = await supabase
+        .from("site_settings")
+        .upsert({
+          id: "global",
+          settings,
+        });
+
+      if (error) {
+        throw error;
+      }
+
       window.localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify(settings)
       );
-      setMessage("Pengaturan draft tersimpan di browser ini.");
-    } catch {
-      setMessage("Gagal menyimpan pengaturan di browser.");
+
+      setMessage("Pengaturan berhasil disimpan ke Supabase.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? `Gagal menyimpan: ${error.message}`
+          : "Gagal menyimpan pengaturan ke Supabase."
+      );
+    } finally {
+      setSaving(false);
     }
   }
+
 
   function resetSettings() {
     const confirmed = window.confirm(
@@ -187,6 +371,83 @@ export default function AdminPage() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-100">
         Memuat panel admin...
+      </main>
+    );
+  }
+
+  if (!authReady) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-100">
+        Memeriksa sesi admin...
+      </main>
+    );
+  }
+
+  if (!userId) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleLogin();
+          }}
+          className="w-full max-w-md space-y-5 rounded-xl border bg-white p-6 shadow-sm"
+        >
+          <div>
+            <h1 className="text-2xl font-bold">
+              Login Super Admin
+            </h1>
+            <p className="mt-2 text-sm text-slate-500">
+              Marketplace Ekonomi Kreatif Ende
+            </p>
+          </div>
+
+          <label className="block text-sm font-medium">
+            Email admin
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-2 w-full rounded-lg border px-3 py-3 font-normal"
+              placeholder="Masukkan email admin"
+            />
+          </label>
+
+          <label className="block text-sm font-medium">
+            Kata sandi
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-2 w-full rounded-lg border px-3 py-3 font-normal"
+              placeholder="Masukkan kata sandi"
+            />
+          </label>
+
+          {message && (
+            <p role="status" className="text-sm text-red-700">
+              {message}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            className="w-full rounded-lg bg-marun px-4 py-3 font-semibold text-white"
+          >
+            Masuk sebagai Super Admin
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => void handlePasswordRecovery()}
+            className="w-full rounded-lg border px-4 py-3 text-sm font-medium"
+          >
+            Lupa kata sandi?
+          </button>
+
+        </form>
       </main>
     );
   }
