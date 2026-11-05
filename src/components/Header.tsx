@@ -2,7 +2,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase";
 import { Search, Menu, X, ChevronDown } from "lucide-react";
 import { categories } from "@/lib/demo-data";
 
@@ -22,6 +23,35 @@ const links2 = [
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const [logoUrl, setLogoUrl] = useState("");
+  const [siteName, setSiteName] = useState("Marketplace Ekonomi Kreatif Ende");
+  const [tagline, setTagline] = useState(
+    "Dikelola oleh Dinas Pariwisata Kabupaten Ende"
+  );
+  const [navColor, setNavColor] = useState("#142b4a");
+  useEffect(() => {
+    async function loadSiteSettings() {
+      const supabase = createClient();
+
+      const { data } = await supabase
+        .from("site_settings")
+        .select("settings")
+        .eq("id", "global")
+        .maybeSingle();
+
+      if (data?.settings) {
+        setLogoUrl(data.settings.logoUrl || "");
+        setSiteName(data.settings.siteName || "Marketplace Ekonomi Kreatif Ende");
+        setTagline(
+          data.settings.tagline ||
+            "Dikelola oleh Dinas Pariwisata Kabupaten Ende"
+        );
+        setNavColor(data.settings.secondaryColor || "#142b4a");
+      }
+    }
+
+    loadSiteSettings();
+  }, []);
 
   const linkCls =
     "rounded px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/10";
@@ -34,20 +64,28 @@ export default function Header() {
           className="flex items-center gap-3"
           aria-label="Marketplace Ekonomi Kreatif Ende, beranda"
         >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded border border-dashed border-tanah text-center text-[10px] leading-tight text-tanah">
-            Logo
-            <br />
-            resmi
-          </div>
+          {logoUrl ? (
+  <img
+    src={logoUrl}
+    alt="Logo resmi"
+    className="h-11 w-11 shrink-0 rounded object-contain"
+  />
+) : (
+  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded border border-dashed border-tanah text-center text-[10px] leading-tight text-tanah">
+    Logo
+    <br />
+    resmi
+  </div>
+)}
 
-          <div className="leading-tight">
-            <p className="font-display text-lg font-semibold text-navy">
-              Marketplace Ekonomi Kreatif Ende
-            </p>
-            <p className="hidden text-xs text-ink/60 sm:block">
-              Dikelola oleh Dinas Pariwisata Kabupaten Ende
-            </p>
-          </div>
+<div className="leading-tight">
+  <p className="font-display text-lg font-semibold text-navy">
+    {siteName}
+  </p>
+  <p className="hidden text-xs text-ink/60 sm:block">
+    {tagline}
+  </p>
+</div>
         </Link>
 
         {/* Pencarian desktop */}
@@ -110,9 +148,10 @@ export default function Header() {
       <div className="motif-tenun-tipis" aria-hidden="true" />
 
       <nav
-        aria-label="Navigasi utama"
-        className={`bg-navy ${open ? "block" : "hidden"} lg:block`}
-      >
+  aria-label="Navigasi utama"
+  className={`${open ? "block" : "hidden"} lg:block`}
+  style={{ backgroundColor: navColor }}
+>
         <ul className="mx-auto flex max-w-6xl flex-col px-2 py-1 lg:flex-row lg:flex-wrap lg:items-center">
           {links.map((link) => (
             <li key={link.href}>

@@ -32,6 +32,7 @@ type SectionItem = {
 
 type SiteSettings = {
   siteName: string;
+  logoUrl: string;
   tagline: string;
   heroTitle: string;
   heroDescription: string;
@@ -46,6 +47,7 @@ const STORAGE_KEY = "ende-marketplace-admin-draft-v1";
 
 const defaultSettings: SiteSettings = {
   siteName: "Marketplace Ekonomi Kreatif Ende",
+  logoUrl: "",
   tagline: "Dikelola oleh Dinas Pariwisata Kabupaten Ende",
   heroTitle: "Jelajahi Produk dan Kreativitas Ende",
   heroDescription:
@@ -652,6 +654,73 @@ export default function AdminPage() {
           {activeTab === "appearance" && (
             <section className="space-y-5 rounded-xl border bg-white p-5">
               <h3 className="font-bold">Warna website</h3>
+              <div>
+  <label className="block text-sm font-medium">
+    Alamat gambar logo website
+  </label>
+
+  <input
+    type="text"
+    value={settings.logoUrl}
+    onChange={(e) => updateField("logoUrl", e.target.value)}
+    placeholder="Tempel alamat URL gambar logo di sini"
+    className="mt-2 w-full rounded-lg border p-3"
+  />
+
+  <label className="mt-3 block text-sm font-medium">
+    Atau unggah file logo dari komputer
+  </label>
+
+  <input
+    type="file"
+    accept="image/png,image/jpeg,image/webp"
+    className="mt-2 w-full rounded-lg border p-3"
+    onChange={async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      if (file.size > 2 * 1024 * 1024) {
+        setMessage("Ukuran logo maksimal 2 MB.");
+        return;
+      }
+
+      const supabase = createClient();
+      const extension = file.name.split(".").pop() || "png";
+      const filePath = `logo-${Date.now()}.${extension}`;
+
+      setMessage("Sedang mengunggah logo...");
+
+      const { error } = await supabase.storage
+        .from("site-assets")
+        .upload(filePath, file, {
+          contentType: file.type,
+          upsert: true,
+        });
+
+      if (error) {
+        setMessage("Gagal mengunggah logo: " + error.message);
+        return;
+      }
+
+      const { data } = supabase.storage
+        .from("site-assets")
+        .getPublicUrl(filePath);
+
+      updateField("logoUrl", data.publicUrl);
+      setMessage(
+        "Logo berhasil diunggah. Silakan klik Simpan Pengaturan."
+      );
+    }}
+  />
+
+  {settings.logoUrl && (
+    <img
+      src={settings.logoUrl}
+      alt="Pratinjau logo website"
+      className="mt-3 h-20 w-20 rounded border object-contain p-2"
+    />
+  )}
+</div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-sm font-medium">
