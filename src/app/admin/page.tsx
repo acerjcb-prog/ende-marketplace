@@ -104,6 +104,7 @@ export default function AdminPage() {
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -425,7 +426,20 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
     setPassword("");
     setMessage("Login Super Admin berhasil.");
   }
+  async function handleLogout() {
+    const supabase = createClient();
 
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      setMessage("Gagal keluar dari akun admin.");
+      return;
+    }
+
+    setUserId(null);
+    setPassword("");
+    setMessage("Anda berhasil keluar dari Super Admin.");
+  }
   async function handlePasswordRecovery() {
     if (!email) {
       setMessage("Masukkan email admin terlebih dahulu.");
@@ -573,73 +587,100 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
 
   if (!userId) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void handleLogin();
-          }}
-          className="w-full max-w-md space-y-5 rounded-xl border bg-white p-6 shadow-sm"
-        >
-          <div>
-            <h1 className="text-2xl font-bold">
-              Login Super Admin
-            </h1>
-            <p className="mt-2 text-sm text-slate-500">
-              Marketplace Ekonomi Kreatif Ende
-            </p>
-          </div>
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-[#142b4a] via-[#263653] to-[#800000] px-4 py-10">
+        {/* Hiasan animasi latar */}
+        <div className="absolute -left-24 -top-24 h-72 w-72 animate-pulse rounded-full bg-white/10 blur-3xl" />
 
-          <label className="block text-sm font-medium">
-            Email admin
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-2 w-full rounded-lg border px-3 py-3 font-normal"
-              placeholder="Masukkan email admin"
-            />
-          </label>
-
-          <label className="block text-sm font-medium">
-            Kata sandi
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-2 w-full rounded-lg border px-3 py-3 font-normal"
-              placeholder="Masukkan kata sandi"
-            />
-          </label>
-
-          {message && (
-            <p role="status" className="text-sm text-red-700">
-              {message}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-marun px-4 py-3 font-semibold text-white"
-          >
-            Masuk sebagai Super Admin
-          </button>
-          
-          <button
-            type="button"
-            onClick={() => void handlePasswordRecovery()}
-            className="w-full rounded-lg border px-4 py-3 text-sm font-medium"
-          >
-            Lupa kata sandi?
-          </button>
-
-        </form>
-      </main>
-    );
-  }
-
+        <div className="absolute -bottom-24 -right-24 h-80 w-80 animate-pulse rounded-full bg-red-400/20 blur-3xl" />
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleLogin();
+              }}
+              className="relative w-full max-w-md space-y-5 rounded-2xl border border-white/40 bg-white/95 p-8 shadow-2xl backdrop-blur-md transition-all duration-500 hover:-translate-y-1"
+            >
+              <div className="text-center">
+                {settings.logoUrl && (
+                  <img
+                    src={settings.logoUrl}
+                    alt="Logo Marketplace Ekonomi Kreatif Ende"
+                    className="mx-auto mb-4 h-24 w-24 rounded-xl object-contain"
+                  />
+                )}
+      
+                <h1 className="text-2xl font-bold text-[#142b4a]">
+                  Login Super Admin
+                </h1>
+      
+                <p className="mt-2 text-sm text-slate-500">
+                  Marketplace Ekonomi Kreatif Ende
+                </p>
+              </div>
+      
+              <label className="block text-sm font-medium">
+                Email admin
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-2 w-full rounded-lg border px-3 py-3 font-normal"
+                  placeholder="Masukkan email admin"
+                />
+              </label>
+      
+              <label className="block text-sm font-medium">
+                Kata sandi
+                <div className="relative mt-2">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full rounded-lg border px-3 py-3 pr-12 font-normal"
+                    placeholder="Masukkan kata sandi"
+                  />
+      
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-marun"
+                    aria-label={
+                      showPassword
+                        ? "Sembunyikan kata sandi"
+                        : "Tampilkan kata sandi"
+                    }
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </label>
+      
+              {message && (
+                <p role="status" className="text-sm text-red-700">
+                  {message}
+                </p>
+              )}
+      
+              <button
+                type="submit"
+                className="w-full rounded-lg bg-marun px-4 py-3 font-semibold text-white"
+              >
+                Masuk sebagai Super Admin
+              </button>
+      
+              <button
+                type="button"
+                onClick={() => void handlePasswordRecovery()}
+                className="w-full rounded-lg border px-4 py-3 text-sm font-medium"
+              >
+                Lupa kata sandi?
+              </button>
+            </form>
+          </main>
+        );
+      }
+      
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800">
       <header className="border-b bg-white">
@@ -661,6 +702,13 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
           >
             Lihat website ↗
           </a>
+          <button
+  type="button"
+  onClick={() => void handleLogout()}
+  className="rounded-lg bg-[#800000] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+>
+  Keluar
+</button>
         </div>
       </header>
 
