@@ -1,96 +1,85 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase";
 
-const berita = [
-  {
-    kategori: "UMKM",
-    tanggal: "Informasi UMKM",
-    judul: "Kenali Potensi Produk Kreatif Lokal Kabupaten Ende",
-    ringkasan:
-      "Temukan beragam produk lokal, mulai dari tenun ikat, kerajinan tangan, hingga kuliner khas yang menjadi potensi ekonomi kreatif masyarakat Ende.",
-    gambar: "",
-    labelGambar: "Produk Kreatif Ende",
-  },
-  {
-    kategori: "Kerajinan",
-    tanggal: "Inspirasi Produk",
-    judul: "Tenun Ikat Ende, Warisan Budaya yang Bernilai Ekonomi",
-    ringkasan:
-      "Kerajinan tenun ikat memiliki nilai budaya sekaligus peluang untuk dikembangkan melalui pemasaran digital.",
-    gambar: "",
-    labelGambar: "Tenun Ikat",
-  },
-  {
-    kategori: "Kuliner",
-    tanggal: "Inspirasi Usaha",
-    judul: "Peluang Kuliner Lokal untuk Menjangkau Pasar Lebih Luas",
-    ringkasan:
-      "Kemasan yang menarik, informasi produk yang jelas, dan pemasaran digital dapat membantu usaha kuliner dikenal calon pelanggan.",
-    gambar: "",
-    labelGambar: "Kuliner Lokal",
-  },
-  {
-    kategori: "Promosi",
-    tanggal: "Panduan Promosi",
-    judul: "Cara Memperkenalkan Produk UMKM melalui Marketplace",
-    ringkasan:
-      "Pelajari cara menampilkan foto produk, menulis deskripsi yang menarik, serta mencantumkan kontak usaha agar mudah ditemukan pembeli.",
-    gambar: "",
-    labelGambar: "Promosi UMKM",
-  },
-  {
-    kategori: "Desa Kreatif",
-    tanggal: "Potensi Daerah",
-    judul: "Mengangkat Potensi Desa melalui Produk Kreatif",
-    ringkasan:
-      "Produk dan keterampilan masyarakat desa dapat menjadi peluang usaha ketika diperkenalkan dengan informasi yang tepat.",
-    gambar: "",
-    labelGambar: "Desa Kreatif",
-  },
-  {
-    kategori: "UMKM",
-    tanggal: "Tips Usaha",
-    judul: "Tips Membuat Profil Usaha yang Menarik bagi Pembeli",
-    ringkasan:
-      "Gunakan nama usaha yang jelas, foto produk yang baik, deskripsi singkat, dan nomor kontak yang aktif.",
-    gambar: "",
-    labelGambar: "Tips UMKM",
-  },
-];
+type NewsArticle = {
+  id: string;
+  judul: string;
+  isi: string;
+  foto_url: string | null;
+  created_at: string;
+};
 
-const kategoriBerita = [
-  "Semua",
-  "UMKM",
-  "Kerajinan",
-  "Kuliner",
-  "Promosi",
-  "Desa Kreatif",
-];
+function buatSlug(judul: string) {
+  return judul
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
 
 export default function BeritaPage() {
+  const [berita, setBerita] = useState<NewsArticle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [pesanError, setPesanError] = useState("");
   const [kategoriAktif, setKategoriAktif] = useState("Semua");
   const [kataKunci, setKataKunci] = useState("");
+
+  useEffect(() => {
+    async function loadBerita() {
+      try {
+        const supabase = createClient();
+
+        const { data, error } = await supabase
+          .from("berita")
+          .select("id, judul, isi, foto_url, created_at")
+          .eq("status", "terbit")
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        setBerita(data || []);
+      } catch (error) {
+        setPesanError(
+          error instanceof Error
+            ? error.message
+            : "Gagal memuat berita."
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void loadBerita();
+  }, []);
+
+  const kategoriBerita = [
+    "Semua",
+    "UMKM",
+    "Kerajinan",
+    "Kuliner",
+    "Promosi",
+    "Desa Kreatif",
+  ];
 
   const hasilBerita = useMemo(() => {
     const kata = kataKunci.trim().toLowerCase();
 
     return berita.filter((item) => {
       const sesuaiKategori =
-        kategoriAktif === "Semua" ||
-        item.kategori === kategoriAktif;
+        kategoriAktif === "Semua" || kategoriAktif === "UMKM";
 
       const sesuaiPencarian =
         !kata ||
-        `${item.judul} ${item.ringkasan} ${item.kategori}`
-          .toLowerCase()
-          .includes(kata);
+        `${item.judul} ${item.isi}`.toLowerCase().includes(kata);
 
       return sesuaiKategori && sesuaiPencarian;
     });
-  }, [kategoriAktif, kataKunci]);
+  }, [berita, kategoriAktif, kataKunci]);
 
   return (
     <main className="min-h-screen bg-gray-50 pb-16">
@@ -106,8 +95,7 @@ export default function BeritaPage() {
 
           <p className="mt-5 max-w-2xl leading-7 text-blue-100">
             Ikuti informasi seputar produk kreatif, potensi usaha,
-            kerajinan, kuliner, dan promosi ekonomi kreatif
-            Kabupaten Ende.
+            kerajinan, kuliner, dan promosi ekonomi kreatif Kabupaten Ende.
           </p>
 
           <div className="mt-8 flex max-w-xl flex-col gap-3 sm:flex-row">
@@ -122,11 +110,11 @@ export default function BeritaPage() {
 
             <button
               type="button"
-              onClick={() => {
+              onClick={() =>
                 document
                   .getElementById("daftar-berita")
-                  ?.scrollIntoView({ behavior: "smooth" });
-              }}
+                  ?.scrollIntoView({ behavior: "smooth" })
+              }
               className="rounded-lg bg-red-900 px-6 py-3 font-semibold text-white hover:bg-red-800"
             >
               Cari Berita
@@ -144,7 +132,7 @@ export default function BeritaPage() {
             Jelajahi Berita
           </h2>
           <p className="mt-2 text-gray-600">
-            Pilih topik yang ingin Anda baca.
+            Berita terbaru dari pengelola Marketplace Ekonomi Kreatif Ende.
           </p>
         </div>
 
@@ -170,55 +158,71 @@ export default function BeritaPage() {
           id="daftar-berita"
           className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
         >
-          {hasilBerita.map((item, index) => (
-            <article
-              key={item.judul}
-              className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-            >
-              <div className="flex h-48 items-center justify-center bg-blue-950 p-6 text-center">
-                <div>
-                  <span className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-amber-300">
-                    {item.kategori}
-                  </span>
-                  <p className="mt-4 text-xl font-bold text-white">
-                    {item.labelGambar}
-                  </p>
-                  <p className="mt-2 text-sm text-blue-200">
+          {loading ? (
+            <p className="text-gray-600">Memuat berita...</p>
+          ) : pesanError ? (
+            <p className="text-red-700">Gagal memuat berita: {pesanError}</p>
+          ) : (
+            hasilBerita.map((item) => (
+              <article
+                key={item.id}
+                className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              >
+                {item.foto_url ? (
+                  <img
+                    src={item.foto_url}
+                    alt={item.judul}
+                    className="h-48 w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-48 items-center justify-center bg-blue-950 p-6 text-center text-xl font-bold text-white">
                     Marketplace Ekonomi Kreatif Ende
+                  </div>
+                )}
+
+                <div className="flex flex-1 flex-col p-5">
+                  <p className="text-xs font-medium text-red-800">
+                    {new Date(item.created_at).toLocaleDateString("id-ID", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
                   </p>
-                </div>
-              </div>
 
-              <div className="flex flex-1 flex-col p-5">
-                <p className="text-xs font-medium text-red-800">
-                  {item.tanggal}
-                </p>
+                  <Link
+                    href={`/berita/${buatSlug(item.judul)}`}
+                    className="mt-3 text-lg font-bold leading-snug text-blue-950 hover:text-red-800"
+                  >
+                    {item.judul}
+                  </Link>
 
-                <h3 className="mt-3 text-lg font-bold leading-snug text-blue-950">
-                  {item.judul}
-                </h3>
-
-                <p className="mt-3 flex-1 text-sm leading-6 text-gray-600">
-                  {item.ringkasan}
-                </p>
-
-                <div className="mt-5 border-t border-gray-100 pt-4">
-                  <p className="text-xs text-gray-500">
-                    Informasi umum • Artikel {index + 1}
+                  <p className="mt-3 flex-1 whitespace-pre-line text-sm leading-6 text-gray-600">
+                    {item.isi.length > 180
+                      ? `${item.isi.slice(0, 180)}...`
+                      : item.isi}
                   </p>
+
+                  <div className="mt-5 border-t border-gray-100 pt-4">
+                    <Link
+                      href={`/berita/${buatSlug(item.judul)}`}
+                      className="text-sm font-semibold text-red-900 hover:underline"
+                    >
+                      Baca selengkapnya →
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            ))
+          )}
         </div>
 
-        {hasilBerita.length === 0 && (
+        {!loading && !pesanError && hasilBerita.length === 0 && (
           <div className="rounded-xl border border-dashed border-gray-300 bg-white px-5 py-12 text-center">
             <h3 className="font-semibold text-blue-950">
               Berita tidak ditemukan
             </h3>
             <p className="mt-2 text-sm text-gray-600">
-              Coba kata kunci atau kategori yang berbeda.
+              Belum ada berita terbit atau berita sesuai pencarian.
             </p>
             <button
               type="button"
@@ -245,9 +249,9 @@ export default function BeritaPage() {
           </h2>
 
           <p className="mt-3 max-w-2xl leading-7 text-gray-700">
-            Daftarkan usaha Anda melalui Ende Marketplace agar
-            informasi usaha dan produk kreatif dapat dipersiapkan
-            untuk ditampilkan di etalase digital.
+            Daftarkan usaha Anda melalui Ende Marketplace agar informasi
+            usaha dan produk kreatif dapat dipersiapkan untuk ditampilkan
+            di etalase digital.
           </p>
 
           <Link
@@ -261,4 +265,3 @@ export default function BeritaPage() {
     </main>
   );
 }
-

@@ -7,18 +7,21 @@ import { createClient } from "@/lib/supabase";
 import { Search, Menu, X, ChevronDown } from "lucide-react";
 import { categories } from "@/lib/demo-data";
 
-const links = [
-  { href: "/", label: "Beranda" },
-  { href: "/produk", label: "Produk UMKM" },
-];
+type HeaderMenuItem = {
+  href: string;
+  label: string;
+  visible?: boolean;
+};
 
-const links2 = [
-  { href: "/desa-kreatif", label: "Desa Kreatif" },
-  { href: "/jasa-ekraf", label: "Jasa Ekraf" },
-  { href: "/umkm", label: "Profil UMKM" },
-  { href: "/berita", label: "Berita dan Promosi" },
-  { href: "/cara-berbelanja", label: "Cara Berbelanja" },
-  { href: "/tentang-kami", label: "Tentang Kami" },
+const defaultMenus: HeaderMenuItem[] = [
+  { href: "/", label: "Beranda", visible: true },
+  { href: "/produk", label: "Produk UMKM", visible: true },
+  { href: "/desa-kreatif", label: "Desa Kreatif", visible: true },
+  { href: "/jasa-ekraf", label: "Jasa Ekraf", visible: true },
+  { href: "/umkm", label: "Profil UMKM", visible: true },
+  { href: "/berita", label: "Berita dan Promosi", visible: true },
+  { href: "/cara-berbelanja", label: "Cara Berbelanja", visible: true },
+  { href: "/tentang-kami", label: "Tentang Kami", visible: true },
 ];
 
 export default function Header() {
@@ -29,6 +32,7 @@ export default function Header() {
     "Dikelola oleh Dinas Pariwisata Kabupaten Ende"
   );
   const [navColor, setNavColor] = useState("#142b4a");
+  const [menus, setMenus] = useState<HeaderMenuItem[]>(defaultMenus);
   useEffect(() => {
     async function loadSiteSettings() {
       const supabase = createClient();
@@ -47,6 +51,9 @@ export default function Header() {
             "Dikelola oleh Dinas Pariwisata Kabupaten Ende"
         );
         setNavColor(data.settings.secondaryColor || "#142b4a");
+        if (Array.isArray(data.settings.menus)) {
+          setMenus(data.settings.menus);
+        }
       }
     }
 
@@ -56,6 +63,11 @@ export default function Header() {
   const linkCls =
     "rounded px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/10";
 
+    const visibleMenus = menus.filter(
+      (menu) => menu.visible !== false
+    );
+    const links = visibleMenus.slice(0, 2);
+const links2 = visibleMenus.slice(2);
   return (
     <header className="sticky top-0 z-40 bg-white shadow-sm">
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">

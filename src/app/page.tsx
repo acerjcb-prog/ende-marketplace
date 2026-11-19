@@ -1,3 +1,6 @@
+"use client";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase";
 import Link from "next/link";
 import { MapPin, Search, Layers, Hammer, UtensilsCrossed, Shirt, Package, Sparkles } from "lucide-react";
 import { categories, villages, news, umkmList } from "@/lib/demo-data";
@@ -7,37 +10,115 @@ import ProductCard from "@/components/ProductCard";
 import ProductImage from "@/components/ProductImage";
 
 const icons = [Layers, Hammer, UtensilsCrossed, Shirt, Package, Sparkles];
+function getYouTubeEmbedUrl(url?: string) {
+  const defaultId = "727dwsLCG2U";
+  let videoId = defaultId;
+
+  try {
+    if (url) {
+      const parsed = new URL(url);
+      const host = parsed.hostname.replace(/^www\./, "");
+
+      if (host === "youtu.be") {
+        videoId = parsed.pathname.split("/").filter(Boolean)[0] || defaultId;
+      } else if (host === "youtube.com" || host === "m.youtube.com") {
+        videoId =
+          parsed.searchParams.get("v") ||
+          parsed.pathname.split("/").filter(Boolean).pop() ||
+          defaultId;
+      }
+    }
+  } catch {
+    videoId = defaultId;
+  }
+
+  return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&playsinline=1&rel=0`;
+}
 
 export default function HomePage() {
+  const [siteSettings, setSiteSettings] = useState<{
+    siteName?: string;
+    tagline?: string;
+    heroTitle?: string;
+    heroDescription?: string;
+    heroImage?: string;
+    heroVideoUrl?: string;
+    sections?: {
+      id: string;
+      title: string;
+      visible: boolean;
+    }[];
+    primaryColor?: string;
+    secondaryColor?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    async function loadSettings() {
+      const supabase = createClient();
+
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("settings")
+        .eq("id", "global")
+        .maybeSingle();
+
+        if (!error && data?.settings) {
+          console.log(
+            "Status susunan halaman dari Supabase:",
+            data.settings.sections
+          );
+        
+          setSiteSettings(data.settings as typeof siteSettings);
+        } else {
+          console.error("Gagal membaca pengaturan:", error);
+        }
+    }
+
+    loadSettings();
+  }, []);
+  function isSectionVisible(id: string) {
+    const section = siteSettings?.sections?.find(
+      (item) => item.id === id
+    );
+
+    return section?.visible ?? true;
+  }
   return (
     <>
-      
+      {isSectionVisible("hero") && (
 <section className="relative isolate overflow-hidden bg-navy">
-  <div className="absolute inset-0 z-0">
+<div className="absolute inset-0 z-0">
+  {siteSettings?.heroImage ? (
+    <img
+      src={siteSettings.heroImage}
+      alt="Gambar latar Beranda"
+      className="h-full w-full object-cover"
+    />
+  ) : (
     <iframe
-      src="https://www.youtube.com/embed/727dwsLCG2U?autoplay=1&mute=1&loop=1&playlist=727dwsLCG2U&controls=0&playsinline=1&rel=0"
-      title="Video latar Ende Marketplace"
+    src={getYouTubeEmbedUrl(siteSettings?.heroVideoUrl)}  
+     title="Video latar Ende Marketplace"
       allow="autoplay; encrypted-media; picture-in-picture"
       className="pointer-events-none absolute left-1/2 top-1/2 h-[56.25vw] min-h-full w-[177.78vh] min-w-full -translate-x-1/2 -translate-y-1/2"
       aria-hidden="true"
       tabIndex={-1}
     />
-  </div>
+  )}
+</div>
 
   <div className="absolute inset-0 z-10 bg-navy/65" />
 
   <div className="relative z-20 mx-auto flex min-h-[520px] max-w-6xl flex-col justify-center px-4 py-16 md:min-h-[620px] md:py-24">
     <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-white/90">
-      Marketplace Ekonomi Kreatif Ende
+      Ma{siteSettings?.siteName || "Marketplace Ekonomi Kreatif Ende"}
     </p>
 
     <h1 className="max-w-2xl font-display text-4xl font-semibold leading-tight text-white md:text-6xl">
-      Jelajahi Produk Kreatif Lokal Ende
+    {siteSettings?.heroTitle || "Jelajahi Produk Kreatif Lokal Ende"}
     </h1>
 
     <p className="mt-5 max-w-xl text-base text-white/90 md:text-lg">
-      Temukan produk unggulan, kerajinan, tenun ikat, kuliner,
-      dan karya kreatif masyarakat Kabupaten Ende.
+     {siteSettings?.heroDescription || "Temukan produk unggulan, kerajinan, tenun ikat, kuliner, dan karya kreatif masyarakat Kabupaten Ende."}
     </p>
 
     <form action="/produk" role="search" className="mt-8 flex max-w-xl overflow-hidden rounded-lg bg-white">
@@ -65,8 +146,9 @@ export default function HomePage() {
     </div>
   </div>
 </section>
+)}
 
-
+{isSectionVisible("categories") && (
       <section className="mx-auto max-w-6xl px-4 pt-14" aria-labelledby="h-kategori">
         <h2 id="h-kategori" className="font-display text-2xl text-navy">Kategori produk</h2>
         <ul className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
@@ -82,7 +164,9 @@ export default function HomePage() {
           })}
         </ul>
       </section>
-
+      )}
+      
+      {isSectionVisible("products") && (
       <section className="mx-auto max-w-6xl px-4 pt-14" aria-labelledby="h-produk">
         <div className="flex items-end justify-between">
           <h2 id="h-produk" className="font-display text-2xl text-navy">Produk unggulan</h2>
@@ -91,8 +175,8 @@ export default function HomePage() {
         <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {featuredProducts().map((p) => <ProductCard key={p.slug} product={p} />)}
         </div>
-      </section>
-
+        </section>
+)}
       <section className="mx-auto max-w-6xl px-4 pt-14" aria-labelledby="h-umkm">
         <h2 id="h-umkm" className="font-display text-2xl text-navy">UMKM unggulan</h2>
         <div className="mt-5 grid gap-5 md:grid-cols-3">
@@ -125,7 +209,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
+      {isSectionVisible("news") && (
       <section className="mx-auto max-w-6xl px-4 pt-14" aria-labelledby="h-berita">
         <div className="flex items-end justify-between">
           <h2 id="h-berita" className="font-display text-2xl text-navy">Berita dan kegiatan</h2>
@@ -141,6 +225,7 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+      )}
       <p className="sr-only">{umkmList.length} UMKM demo</p>
     </>
   );

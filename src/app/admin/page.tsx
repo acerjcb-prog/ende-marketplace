@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase";
+
 import {
   LayoutDashboard,
   Palette,
@@ -16,6 +17,7 @@ import {
   ArrowUp,
   ArrowDown,
   Settings,
+  Newspaper,
 } from "lucide-react";
 
 type MenuItem = {
@@ -37,12 +39,20 @@ type SiteSettings = {
   heroTitle: string;
   heroDescription: string;
   heroImage: string;
+  heroVideoUrl: string;
   primaryColor: string;
   secondaryColor: string;
   menus: MenuItem[];
   sections: SectionItem[];
 };
-
+type NewsArticle = {
+  id: string;
+  judul: string;
+  isi: string;
+  foto_url: string | null;
+  status: string;
+  created_at: string;
+};
 const STORAGE_KEY = "ende-marketplace-admin-draft-v1";
 
 const defaultSettings: SiteSettings = {
@@ -53,6 +63,7 @@ const defaultSettings: SiteSettings = {
   heroDescription:
     "Temukan produk UMKM unggulan dan layanan jasa kreatif dari Kabupaten Ende.",
   heroImage: "",
+  heroVideoUrl: "https://youtu.be/727dwsLCG2U",
   primaryColor: "#800000",
   secondaryColor: "#142b4a",
   menus: [
@@ -80,8 +91,8 @@ const tabs = [
   { id: "appearance", label: "Warna dan gambar", icon: Palette },
   { id: "menus", label: "Menu website", icon: MenuIcon },
   { id: "sections", label: "Susunan halaman", icon: Layers },
+  { id: "news", label: "Berita dan Promosi", icon: Newspaper },
 ] as const;
-
 type TabId = (typeof tabs)[number]["id"];
 
 export default function AdminPage() {
@@ -96,8 +107,44 @@ export default function AdminPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [saving, setSaving] = useState(false);
-
-
+  const [newsList, setNewsList] = useState<NewsArticle[]>([]);
+  const [newsLoading, setNewsLoading] = useState(false);
+  const [newsTitle, setNewsTitle] = useState("");
+  const [newsContent, setNewsContent] = useState("");
+  const [newsStatus, setNewsStatus] = useState("draft");
+  const [newsPhotoUrl, setNewsPhotoUrl] = useState("");
+  const [newsPhotoUploading, setNewsPhotoUploading] = useState(false);
+  const [editingNewsId, setEditingNewsId] = useState<string | null>(null);
+  async function loadNews() {
+    setNewsLoading(true);
+  
+    try {
+      const supabase = createClient();
+  
+      const { data, error } = await supabase
+        .from("berita")
+        .select("id, judul, isi, foto_url, status, created_at")
+        .order("created_at", { ascending: false });
+  
+      if (error) throw error;
+  
+      setNewsList((data || []) as NewsArticle[]);
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? "Gagal memuat berita: " + error.message
+          : "Gagal memuat berita dari Supabase."
+      );
+    } finally {
+      setNewsLoading(false);
+    }
+  }
+  useEffect(() => {
+    if (userId) {
+      void loadNews();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -212,6 +259,145 @@ export default function AdminPage() {
     };
   }, [userId]);
 
+
+async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
+  const file = event.target.files?.[0];
+
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    setMessage("File harus berupa gambar.");
+    event.target.value = "";
+    return;
+  }
+
+  setNewsPhotoUploading(true);
+  setMessage("");
+
+  try {
+    const supabase = createClient();
+
+    const fileName = `${Date.now()}-${file.name.replace(
+      /[^a-zA-Z0-9._-]/g,
+      "-"
+    )}`;
+
+    const { error } = await supabase.storage
+      .from("berita")
+      .upload(fileName, file, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (error) throw error;
+
+    const { data } = supabase.storage
+      .from("berita")
+      .getPublicUrl(fileName);
+
+    setNewsPhotoUrl(data.publicUrl);
+    setMessage("Foto berita berhasil diunggah.");
+  } catch (error) {
+    setMessage(
+      error instanceof Error
+        ? "Gagal mengunggah foto: " + error.message
+        : "Gagal mengunggah foto berita."
+    );
+  } finally {
+    setNewsPhotoUploading(false);
+    event.target.value = "";
+  }
+}
+
+  async function saveNews() {
+    if (!userId) {
+      setMessage("Silakan login sebagai Super Admin.");
+      return;
+    }
+
+    if (!newsTitle.trim() || !newsContent.trim()) {
+      setMessage("Judul dan isi berita wajib diisi.");
+      return;
+    }
+
+    setSaving(true);
+    setMessage("");
+
+    try {
+      const supabase = createClient();
+
+      const articleData = {
+        judul: newsTitle.trim(),
+        isi: newsContent.trim(),
+        foto_url: newsPhotoUrl.trim() || null,
+        status: newsStatus,
+      };
+
+      const result = editingNewsId
+        ? await supabase
+            .from("berita")
+            .update(articleData)
+            .eq("id", editingNewsId)
+        : await supabase
+            .from("berita")
+            .insert(articleData);
+
+      if (result.error) throw result.error;
+
+      setNewsTitle("");
+      setNewsContent("");
+      setNewsPhotoUrl("");
+      setNewsStatus("draft");
+      setEditingNewsId(null);
+
+      await loadNews();
+      setMessage("Berita berhasil disimpan.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? "Gagal menyimpan berita: " + error.message
+          : "Gagal menyimpan berita."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+  function editNews(article: NewsArticle) {
+    setEditingNewsId(article.id);
+    setNewsTitle(article.judul);
+    setNewsContent(article.isi);
+    setNewsPhotoUrl(article.foto_url || "");
+    setNewsStatus(article.status);
+    setMessage("Mode edit berita.");
+  }
+
+  async function deleteNews(id: string) {
+    const confirmed = window.confirm(
+      "Apakah Anda yakin ingin menghapus berita ini?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const supabase = createClient();
+
+      const { error } = await supabase
+        .from("berita")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      await loadNews();
+      setMessage("Berita berhasil dihapus.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? "Gagal menghapus berita: " + error.message
+          : "Gagal menghapus berita."
+      );
+    }
+  }
 
   async function handleLogin() {
     setMessage("");
@@ -507,11 +693,10 @@ export default function AdminPage() {
             })}
           </nav>
 
-          <div className="mt-4 rounded-lg bg-amber-50 p-3 text-xs leading-5 text-amber-900">
-            Mode draft lokal. Pengaturan belum terhubung ke website publik.
-          </div>
-        </aside>
-
+          <div className="mt-4 rounded-lg bg-green-50 p-3 text-xs leading-5 text-green-800">
+  Pengaturan website tersimpan di Supabase dan dapat diterapkan untuk pengunjung website.
+</div>
+</aside>
         <main className="min-w-0 space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -519,7 +704,7 @@ export default function AdminPage() {
                 {tabs.find((tab) => tab.id === activeTab)?.label}
               </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Kelola pengaturan draft website Anda.
+              Kelola pengaturan website secara terpusat melalui Supabase.
               </p>
             </div>
 
@@ -529,7 +714,7 @@ export default function AdminPage() {
               className="flex items-center gap-2 rounded-lg bg-marun px-4 py-3 text-sm font-semibold text-white hover:opacity-90"
             >
               <Save size={17} />
-              Simpan draft
+              Simpan Pengaturan
             </button>
           </div>
 
@@ -588,8 +773,7 @@ export default function AdminPage() {
                   bagian halaman.
                 </p>
                 <p className="mt-3 text-sm leading-6 text-amber-800">
-                  Perubahan pada tahap ini hanya tersimpan sebagai
-                  draft di browser yang digunakan.
+                Perubahan pengaturan disimpan ke Supabase agar dapat digunakan pada website dari berbagai perangkat.
                 </p>
               </section>
             </>
@@ -648,6 +832,153 @@ export default function AdminPage() {
                 Ini adalah draft editor. Integrasi dengan komponen
                 beranda akan dibuat pada tahap berikutnya.
               </p>
+            </section>
+          )}
+
+          {activeTab === "news" && (
+            <section className="space-y-5 rounded-xl border bg-white p-5">
+              <h3 className="text-lg font-bold">
+                Kelola Berita dan Promosi
+              </h3>
+
+              <label className="block text-sm font-medium">
+                Judul berita
+                <input
+                  value={newsTitle}
+                  onChange={(e) => setNewsTitle(e.target.value)}
+                  placeholder="Masukkan judul berita"
+                  className="mt-2 w-full rounded-lg border px-3 py-2.5 font-normal"
+                />
+              </label>
+
+              <label className="block text-sm font-medium">
+                Isi berita
+                <textarea
+                  value={newsContent}
+                  onChange={(e) => setNewsContent(e.target.value)}
+                  placeholder="Tuliskan isi berita..."
+                  rows={7}
+                  className="mt-2 w-full rounded-lg border px-3 py-2.5 font-normal"
+                />
+              </label>
+
+              
+<div>
+  <label className="block text-sm font-medium">
+    Unggah foto berita dari laptop atau HP
+    <input
+      type="file"
+      accept="image/png,image/jpeg,image/webp"
+      onChange={(e) => void uploadNewsPhoto(e)}
+      disabled={newsPhotoUploading}
+      className="mt-2 w-full rounded-lg border p-3 font-normal"
+    />
+  </label>
+
+  {newsPhotoUploading && (
+    <p className="mt-2 text-sm text-slate-500">
+      Sedang mengunggah foto...
+    </p>
+  )}
+
+  {newsPhotoUrl && (
+    <img
+      src={newsPhotoUrl}
+      alt="Pratinjau foto berita"
+      className="mt-3 max-h-64 rounded-lg border object-cover"
+    />
+  )}
+</div>
+
+
+              <label className="block text-sm font-medium">
+                Status berita
+                <select
+                  value={newsStatus}
+                  onChange={(e) => setNewsStatus(e.target.value)}
+                  className="mt-2 w-full rounded-lg border px-3 py-2.5 font-normal"
+                >
+                  <option value="draft">Draft</option>
+                  <option value="terbit">Terbit</option>
+                </select>
+              </label>
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => void saveNews()}
+                  disabled={saving}
+                  className="rounded-lg bg-rose-800 px-5 py-2.5 font-semibold text-white disabled:opacity-50"
+                >
+                  {saving ? "Menyimpan..." : editingNewsId ? "Simpan Perubahan" : "Simpan Berita"}
+                </button>
+
+                {editingNewsId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingNewsId(null);
+                      setNewsTitle("");
+                      setNewsContent("");
+                      setNewsPhotoUrl("");
+                      setNewsStatus("draft");
+                      setMessage("Edit berita dibatalkan.");
+                    }}
+                    className="rounded-lg border px-5 py-2.5"
+                  >
+                    Batal Edit
+                  </button>
+                )}
+              </div>
+
+              {message && (
+                <p className="text-sm text-slate-600">{message}</p>
+              )}
+
+              <div className="border-t pt-5">
+                <h4 className="mb-4 font-bold">Daftar berita</h4>
+
+                {newsLoading ? (
+                  <p className="text-sm text-slate-500">Memuat berita...</p>
+                ) : newsList.length === 0 ? (
+                  <p className="text-sm text-slate-500">
+                    Belum ada berita tersimpan.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {newsList.map((article) => (
+                      <div
+                        key={article.id}
+                        className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div>
+                          <p className="font-semibold">{article.judul}</p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            Status: {article.status}
+                          </p>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => editNews(article)}
+                            className="rounded-lg border px-3 py-2 text-sm"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void deleteNews(article.id)}
+                            className="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700"
+                          >
+                            Hapus
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </section>
           )}
 
@@ -783,6 +1114,62 @@ export default function AdminPage() {
                     className="mt-2 w-full rounded-lg border px-3 py-2.5 font-normal"
                   />
                 </label>
+                <label className="mt-4 block text-sm font-medium">
+  URL Video YouTube Beranda
+  <input
+    type="url"
+    value={settings.heroVideoUrl}
+    onChange={(e) =>
+      updateField("heroVideoUrl", e.target.value)
+    }
+    placeholder="https://youtu.be/contoh"
+    className="mt-2 w-full rounded-lg border px-3 py-2.5 font-normal"
+  />
+</label>
+                <label className="mt-4 block text-sm font-medium">
+                  Atau unggah gambar banner dari komputer
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="mt-2 w-full rounded-lg border p-3 font-normal"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+
+                      if (file.size > 2 * 1024 * 1024) {
+                        setMessage("Ukuran gambar banner maksimal 2 MB.");
+                        return;
+                      }
+
+                      const supabase = createClient();
+                      const extension = file.name.split(".").pop() || "jpg";
+                      const filePath = `banner-${Date.now()}.${extension}`;
+
+                      setMessage("Sedang mengunggah gambar banner...");
+
+                      const { error } = await supabase.storage
+                        .from("site-assets")
+                        .upload(filePath, file, {
+                          contentType: file.type,
+                          upsert: true,
+                        });
+
+                      if (error) {
+                        setMessage("Gagal mengunggah gambar: " + error.message);
+                        return;
+                      }
+
+                      const { data } = supabase.storage
+                        .from("site-assets")
+                        .getPublicUrl(filePath);
+
+                      updateField("heroImage", data.publicUrl);
+                      setMessage(
+                        "Gambar banner berhasil diunggah. Klik Simpan Pengaturan."
+                      );
+                    }}
+                  />
+                </label>
 
                 {settings.heroImage.trim() && (
                   <div className="mt-4">
@@ -805,14 +1192,13 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
-                  <ImageIcon size={15} />
-                  Gunakan URL gambar yang dapat diakses publik.
-                  Upload gambar ke penyimpanan server akan dibuat
-                  pada tahap integrasi.
-                </div>
-              </div>
-            </section>
+<div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+  <ImageIcon size={15} />
+  Gunakan URL gambar yang dapat diakses publik atau unggah
+  gambar langsung dari komputer.   File akan disimpan di Supabase Storage.
+</div>
+</div>
+</section>
           )}
 
           {activeTab === "menus" && (
