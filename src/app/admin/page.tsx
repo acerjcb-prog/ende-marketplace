@@ -682,18 +682,24 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
       }
       
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800">
-      <header className="border-b bg-white">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-marun">
-              Panel Pengelola
-            </p>
-            <h1 className="mt-1 text-lg font-bold sm:text-xl">
-              Marketplace Ekonomi Kreatif Ende
-            </h1>
-          </div>
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-white to-blue-50 text-slate-800">
 
+      {/* Hiasan animasi latar Dashboard */}
+      <div className="pointer-events-none fixed -left-32 top-20 h-96 w-96 animate-pulse rounded-full bg-blue-200/30 blur-3xl" />
+
+      <div className="pointer-events-none fixed -right-32 bottom-0 h-96 w-96 animate-pulse rounded-full bg-rose-200/30 blur-3xl" />
+
+      <div className="relative z-10">
+      <header className="border-b border-rose-900 bg-gradient-to-r from-slate-950 via-slate-900 to-rose-950 text-white shadow-lg">
+  <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wider text-amber-300">
+        Panel Pengelola
+      </p>
+      <h1 className="mt-1 text-lg font-bold text-white sm:text-xl">
+        Marketplace Ekonomi Kreatif Ende
+      </h1>
+    </div>
           <a
             href="/"
             target="_blank"
@@ -705,16 +711,15 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
           <button
   type="button"
   onClick={() => void handleLogout()}
-  className="rounded-lg bg-[#800000] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
->
+  className="rounded-lg border border-rose-400/30 bg-gradient-to-r from-rose-900 to-red-950 px-5 py-2 text-sm font-semibold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:brightness-110">
   Keluar
 </button>
         </div>
       </header>
 
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[230px_minmax(0,1fr)]">
-        <aside className="h-fit rounded-xl border bg-white p-3">
-          <p className="px-3 pb-3 pt-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+      <aside className="h-fit rounded-xl border border-slate-700 bg-gradient-to-b from-slate-950 via-slate-900 to-rose-950 p-3 shadow-xl">
+      <p className="px-3 pb-3 pt-2 text-xs font-semibold uppercase tracking-wider text-amber-300">
             Pengaturan website
           </p>
 
@@ -730,8 +735,8 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 rounded-lg px-3 py-3 text-left text-sm font-medium ${
                     active
-                      ? "bg-slate-900 text-white"
-                      : "text-slate-600 hover:bg-slate-100"
+  ? "bg-rose-900 text-amber-300 shadow-md"
+  : "text-slate-200 hover:bg-white/10 hover:text-amber-200"
                   }`}
                 >
                   <Icon size={17} />
@@ -759,7 +764,7 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
             <button
               type="button"
               onClick={saveSettings}
-              className="flex items-center gap-2 rounded-lg bg-marun px-4 py-3 text-sm font-semibold text-white hover:opacity-90"
+            className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-rose-900 to-red-950 px-4 py-3 text-sm font-semibold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:brightness-110"
             >
               <Save size={17} />
               Simpan Pengaturan
@@ -778,58 +783,63 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
           {activeTab === "dashboard" && (
             <>
               <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                <div className="rounded-xl border bg-white p-5">
-                  <LayoutDashboard className="text-slate-500" />
-                  <p className="mt-4 text-sm text-slate-500">
-                    Nama website
-                  </p>
+              <div className="rounded-2xl border border-slate-700 bg-gradient-to-br from-slate-900 via-slate-800 to-rose-950 p-5 text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+              <LayoutDashboard className="text-amber-300" />
+              <p className="mt-4 text-sm text-white/70">Nama website</p>
                   <p className="mt-1 font-bold">
                     {settings.siteName}
                   </p>
                 </div>
 
-                <div className="rounded-xl border bg-white p-5">
-                  <MenuIcon className="text-slate-500" />
-                  <p className="mt-4 text-sm text-slate-500">
-                    Menu ditampilkan
-                  </p>
-                  <p className="mt-1 text-2xl font-bold">
-                    {settings.menus.filter((menu) => menu.visible).length}
-                  </p>
-                </div>
+                <div className="rounded-2xl border border-slate-700 bg-gradient-to-br from-slate-900 via-slate-800 to-rose-950 p-5 text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+  <MenuIcon className="text-amber-300" />
+  <p className="mt-4 text-sm text-white/70">
+    Menu ditampilkan
+  </p>
+  <p className="mt-1 text-2xl font-bold">
+    {settings.menus.filter((menu) => menu.visible).length}
+  </p>
+</div>
 
-                <div className="rounded-xl border bg-white p-5">
-                  <Layers className="text-slate-500" />
-                  <p className="mt-4 text-sm text-slate-500">
-                    Bagian halaman aktif
-                  </p>
-                  <p className="mt-1 text-2xl font-bold">
-                    {
-                      settings.sections.filter(
-                        (section) => section.visible
-                      ).length
-                    }
-                  </p>
-                </div>
+<div className="rounded-2xl border border-slate-700 bg-gradient-to-br from-slate-900 via-slate-800 to-rose-950 p-5 text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+  <Layers className="text-amber-300" />
+  <p className="mt-4 text-sm text-white/70">
+    Bagian halaman aktif
+  </p>
+  <p className="mt-1 text-2xl font-bold">
+    {
+      settings.sections.filter(
+        (section) => section.visible
+      ).length
+    }
+  </p>
+</div>
+                 
               </section>
 
-              <section className="rounded-xl border bg-white p-5">
-                <h3 className="font-bold">Mulai mengatur website</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Pilih menu di sebelah kiri untuk mengubah teks
-                  beranda, warna, gambar, navigasi, atau susunan
-                  bagian halaman.
-                </p>
-                <p className="mt-3 text-sm leading-6 text-amber-800">
-                Perubahan pengaturan disimpan ke Supabase agar dapat digunakan pada website dari berbagai perangkat.
-                </p>
-              </section>
+              <section className="rounded-2xl border border-slate-700 bg-gradient-to-br from-slate-900 via-slate-800 to-rose-950 p-6 text-white shadow-xl transition-all duration-300 hover:shadow-2xl">
+  <h3 className="text-lg font-bold text-amber-300">
+    Mulai mengatur website
+  </h3>
+
+  <p className="mt-3 text-sm leading-7 text-white/80">
+    Pilih menu di sebelah kiri untuk mengubah teks
+    beranda, warna, gambar, navigasi, atau susunan
+    bagian halaman.
+  </p>
+
+  <p className="mt-4 rounded-xl border border-white/10 bg-white/10 p-4 text-sm leading-7 text-amber-200">
+    Perubahan pengaturan disimpan ke Supabase agar dapat digunakan pada website dari berbagai perangkat.
+    </p>
+</section>
             </>
           )}
 
           {activeTab === "content" && (
             <section className="space-y-5 rounded-xl border bg-white p-5">
-              <h3 className="font-bold">Identitas dan tulisan beranda</h3>
+             <h3 className="border-b border-slate-200 pb-4 text-lg font-bold text-slate-900">
+  Identitas dan tulisan beranda
+</h3>
 
               <label className="block text-sm font-medium">
                 Nama website
@@ -838,7 +848,7 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
                   onChange={(e) =>
                     updateField("siteName", e.target.value)
                   }
-                  className="mt-2 w-full rounded-lg border px-3 py-2.5 font-normal"
+                 className="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 font-normal text-slate-800 outline-none transition-all duration-300 focus:border-rose-800 focus:bg-white focus:ring-2 focus:ring-rose-100"
                 />
               </label>
 
@@ -884,7 +894,7 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
           )}
 
           {activeTab === "news" && (
-            <section className="space-y-5 rounded-xl border bg-white p-5">
+            <section className="space-y-6 rounded-2xl border border-slate-200 bg-white/95 p-6 shadow-lg transition-all duration-300 hover:shadow-xl">
               <h3 className="text-lg font-bold">
                 Kelola Berita dan Promosi
               </h3>
@@ -895,7 +905,7 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
                   value={newsTitle}
                   onChange={(e) => setNewsTitle(e.target.value)}
                   placeholder="Masukkan judul berita"
-                  className="mt-2 w-full rounded-lg border px-3 py-2.5 font-normal"
+                 className="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 font-normal text-slate-800 outline-none transition-all duration-300 focus:border-rose-800 focus:bg-white focus:ring-2 focus:ring-rose-100"
                 />
               </label>
 
@@ -906,7 +916,7 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
                   onChange={(e) => setNewsContent(e.target.value)}
                   placeholder="Tuliskan isi berita..."
                   rows={7}
-                  className="mt-2 w-full rounded-lg border px-3 py-2.5 font-normal"
+                  className="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 font-normal text-slate-800 outline-none transition-all duration-300 focus:border-rose-800 focus:bg-white focus:ring-2 focus:ring-rose-100"
                 />
               </label>
 
@@ -919,7 +929,7 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
       accept="image/png,image/jpeg,image/webp"
       onChange={(e) => void uploadNewsPhoto(e)}
       disabled={newsPhotoUploading}
-      className="mt-2 w-full rounded-lg border p-3 font-normal"
+      className="mt-2 w-full rounded-xl border border-dashed border-rose-300 bg-rose-50/50 p-4 font-normal text-slate-700 transition-all duration-300 hover:border-rose-700 hover:bg-rose-50"
     />
   </label>
 
@@ -1031,7 +1041,7 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
           )}
 
           {activeTab === "appearance" && (
-            <section className="space-y-5 rounded-xl border bg-white p-5">
+            <section className="space-y-6 rounded-2xl border border-slate-200 bg-white/95 p-6 shadow-lg transition-all duration-300 hover:shadow-xl">
               <h3 className="font-bold">Warna website</h3>
               <div>
   <label className="block text-sm font-medium">
@@ -1043,7 +1053,7 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
     value={settings.logoUrl}
     onChange={(e) => updateField("logoUrl", e.target.value)}
     placeholder="Tempel alamat URL gambar logo di sini"
-    className="mt-2 w-full rounded-lg border p-3"
+   className="mt-2 w-full rounded-xl border border-dashed border-rose-300 bg-rose-50/50 p-4 text-slate-700 transition-all duration-300 hover:border-rose-700 hover:bg-rose-50"
   />
 
   <label className="mt-3 block text-sm font-medium">
@@ -1053,7 +1063,7 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
   <input
     type="file"
     accept="image/png,image/jpeg,image/webp"
-    className="mt-2 w-full rounded-lg border p-3"
+   className="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition-all duration-300 focus:border-rose-800 focus:bg-white focus:ring-2 focus:ring-rose-100"
     onChange={async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
@@ -1096,7 +1106,7 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
     <img
       src={settings.logoUrl}
       alt="Pratinjau logo website"
-      className="mt-3 h-20 w-20 rounded border object-contain p-2"
+     className="mt-4 h-28 w-28 rounded-2xl border-2 border-rose-200 bg-white object-contain p-3 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl"
     />
   )}
 </div>
@@ -1111,9 +1121,11 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
                       onChange={(e) =>
                         updateField("primaryColor", e.target.value)
                       }
-                      className="h-11 w-14 cursor-pointer rounded border p-1"
+                     className="h-12 w-16 cursor-pointer rounded-xl border-2 border-slate-200 bg-white p-1 shadow-md transition-all duration-300 hover:scale-105 hover:border-rose-700"
                     />
-                    <span>{settings.primaryColor}</span>
+                    <span className="rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm font-semibold text-slate-700">
+  {settings.primaryColor}
+</span>
                   </div>
                 </label>
 
@@ -1128,7 +1140,9 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
                       }
                       className="h-11 w-14 cursor-pointer rounded border p-1"
                     />
-                    <span>{settings.secondaryColor}</span>
+                   <span className="rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm font-semibold text-slate-700">
+  {settings.primaryColor}
+</span>
                   </div>
                 </label>
               </div>
@@ -1356,7 +1370,7 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
                   <button
                     type="button"
                     onClick={() => toggleSection(index)}
-                    className="flex items-center gap-2 rounded border px-3 py-2 text-sm"
+                   className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-rose-800 hover:bg-rose-50 hover:text-rose-900 hover:shadow-md"
                   >
                     {section.visible ? (
                       <Eye size={16} />
@@ -1384,13 +1398,14 @@ async function uploadNewsPhoto(event: { target: HTMLInputElement }) {
             <button
               type="button"
               onClick={resetSettings}
-              className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-slate-50"
+             className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-rose-800 hover:bg-rose-50 hover:text-rose-900 hover:shadow-md"
             >
               <RotateCcw size={16} />
               Reset draft
             </button>
           </footer>
         </main>
+        </div>
       </div>
     </div>
   );
